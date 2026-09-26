@@ -1,0 +1,9 @@
+{
+  "name": "cairn",
+  "private": true,
+  "type": "module",
+  "description": "Stack river stones on a rock in a stream, one tap at a time.",
+  "scripts": {
+    "test": "node test/e2e.mjs"
+  }
+}

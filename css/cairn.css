@@ -1,0 +1,72 @@
+/* Cairn: river stones at dusk. The canvas is the whole page; everything else floats over it. */
+
+@font-face { font-family: "Cormorant Garamond"; src: url(../fonts/cormorant-garamond-500.woff2) format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Cormorant Garamond"; src: url(../fonts/cormorant-garamond-600.woff2) format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Nunito Sans"; src: url(../fonts/nunito-sans-400.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Nunito Sans"; src: url(../fonts/nunito-sans-600.woff2) format("woff2"); font-weight: 600; font-display: swap; }
+
+:root {
+  --ink: #f4efe6;
+  --ink2: rgba(244, 239, 230, .72);
+  --ink3: rgba(244, 239, 230, .45);
+  --bg: #1b2430;
+  --disp: "Cormorant Garamond", Georgia, serif;
+  --body: "Nunito Sans", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; overflow: hidden; }
+body {
+  background: var(--bg); color: var(--ink); font: 15px/1.4 var(--body);
+  -webkit-font-smoothing: antialiased; user-select: none; -webkit-user-select: none; touch-action: manipulation;
+}
+#stage { position: fixed; inset: 0; display: block; width: 100%; height: 100%; }
+
+.hud {
+  position: fixed; left: 0; right: 0; top: 0; padding: calc(14px + env(safe-area-inset-top, 0px)) 18px 0;
+  display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none;
+}
+.hud .n { font: 600 64px/1 var(--disp); font-variant-numeric: lining-nums; letter-spacing: -.02em; text-shadow: 0 2px 12px rgba(0, 0, 0, .25); }
+.hud .n small { display: block; font: 400 11px var(--body); letter-spacing: .18em; text-transform: uppercase; color: var(--ink2); margin-top: 2px; }
+.hud .r { text-align: right; font: 400 12px var(--body); letter-spacing: .14em; text-transform: uppercase; color: var(--ink2); line-height: 1.8; }
+.hud .r b { display: block; font: 600 22px/1 var(--disp); font-variant-numeric: lining-nums; letter-spacing: 0; text-transform: none; color: var(--ink); }
+
+.ctl {
+  position: fixed; left: 0; right: 0; bottom: 0; background: linear-gradient(transparent, rgba(10, 14, 22, .45));
+  padding: 44px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+  display: flex; justify-content: space-between; align-items: flex-end; pointer-events: none;
+}
+.ctl button {
+  pointer-events: auto; background: rgba(244, 239, 230, .10); border: 1px solid rgba(244, 239, 230, .28); color: var(--ink);
+  border-radius: 999px; width: 52px; height: 52px; font: 600 20px var(--disp);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); cursor: pointer;
+}
+.ctl button:active { background: rgba(244, 239, 230, .22); }
+.ctl .hint { font: 400 12px var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--ink3); text-align: center; padding-bottom: 16px; }
+.ctl .mode {
+  pointer-events: auto; background: none; border: 0; color: var(--ink3); font: 400 12px var(--body); letter-spacing: .12em;
+  text-transform: uppercase; padding: 8px 0; width: auto; height: auto; border-radius: 0; backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+.ctl .mode.on { color: var(--ink); }
+button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+.over { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.over .card {
+  pointer-events: auto; text-align: center; padding: 26px 30px 24px; background: rgba(27, 36, 48, .66);
+  border: 1px solid rgba(244, 239, 230, .18); border-radius: 18px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); max-width: 86vw;
+}
+.over h2 { margin: 0; font: 500 34px/1.05 var(--disp); }
+.over p { margin: 8px 0 0; color: var(--ink2); font-size: 14px; }
+.over button { margin-top: 16px; background: var(--ink); color: var(--bg); border: 0; border-radius: 999px; padding: 10px 22px; font: 600 15px var(--body); cursor: pointer; }
+
+.intro {
+  position: fixed; inset: 0; display: flex; align-items: flex-end; justify-content: center; pointer-events: none;
+  padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+}
+.intro div { text-align: center; color: var(--ink2); font: 500 20px var(--disp); text-shadow: 0 2px 10px rgba(0, 0, 0, .3); }
+.intro div small { display: block; font: 400 12px var(--body); letter-spacing: .14em; text-transform: uppercase; color: var(--ink3); margin-top: 6px; }
+
+.noscript { position: fixed; inset: 0; margin: 0; display: flex; align-items: center; justify-content: center; padding: 16px; text-align: center; font: 500 22px var(--disp); }
+
+@media (prefers-reduced-motion: reduce) { .over .card { backdrop-filter: none; -webkit-backdrop-filter: none; } }

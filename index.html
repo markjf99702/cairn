@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Cairn</title>
+  <meta name="description" content="Stack river stones on a rock in a stream, one tap at a time. After five stones the wind starts pulling at the one in your hand.">
+  <meta property="og:title" content="Cairn">
+  <meta property="og:description" content="Stack river stones on a rock in a stream, one tap at a time.">
+  <meta property="og:image" content="https://junkdrawer.works/cairn/og.png">
+  <meta property="og:url" content="https://junkdrawer.works/cairn/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#1b2430">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="preload" href="fonts/cormorant-garamond-600.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/nunito-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/cairn.css">
+</head>
+<body>
+  <canvas id="stage" aria-label="A cairn of river stones being stacked on a rock in a stream"></canvas>
+  <div class="hud">
+    <div class="n"><span id="count">0</span><small id="countLbl">stones</small></div>
+    <div class="r">best<b id="best">0</b><span id="wind"></span></div>
+  </div>
+  <div class="intro" id="intro"><div>Tap to set a stone down.<small>the stream decides the rest</small></div></div>
+  <div class="ctl">
+    <button type="button" id="rotL" aria-label="Rotate left">⟲</button>
+    <div><div class="hint" id="hint"></div><button type="button" class="mode" id="zen">zen · off</button></div>
+    <button type="button" id="rotR" aria-label="Rotate right">⟳</button>
+  </div>
+  <div class="over" id="over" hidden>
+    <div class="card"><h2 id="overT">The cairn fell</h2><p id="overP"></p><button type="button" id="again">Stack again</button></div>
+  </div>
+  <noscript><p class="noscript">Cairn needs JavaScript to stack the stones.</p></noscript>
+  <script src="js/matter.min.js"></script>
+  <script type="module" src="js/cairn.js"></script>
+</body>
+</html>
