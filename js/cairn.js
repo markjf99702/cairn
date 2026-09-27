@@ -268,6 +268,8 @@ document.addEventListener('keydown', e => {
 $('rotL').addEventListener('click', () => { rot -= 0.26; });
 $('rotR').addEventListener('click', () => { rot += 0.26; });
 $('again').addEventListener('click', reset);
+// Enter on a footer link should follow the link, not start the next round.
+document.querySelector('.jd-foot').addEventListener('keydown', e => e.stopPropagation());
 $('zen').addEventListener('click', () => {
   zen = !zen;
   $('zen').textContent = 'zen · ' + (zen ? 'on' : 'off');

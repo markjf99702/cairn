@@ -59,6 +59,10 @@ button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 .over h2 { margin: 0; font: 500 34px/1.05 var(--disp); }
 .over p { margin: 8px 0 0; color: var(--ink2); font-size: 14px; }
 .over button { margin-top: 16px; background: var(--ink); color: var(--bg); border: 0; border-radius: 999px; padding: 10px 22px; font: 600 15px var(--body); cursor: pointer; }
+.jd-foot { margin: 18px 0 0; font: 400 13px/1.4 var(--body); color: var(--ink2); }
+.jd-foot a { color: inherit; text-decoration: none; border-radius: 2px; }
+.jd-foot a:hover, .jd-foot a:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
+.jd-foot a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 
 .intro {
   position: fixed; inset: 0; display: flex; align-items: flex-end; justify-content: center; pointer-events: none;
