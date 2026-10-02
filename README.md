@@ -1,6 +1,6 @@
 # Cairn
 
-**Play it: [junkdrawer.works/cairn](https://junkdrawer.works/cairn/)**
+**Play it: [cairn.junkdrawer.works](https://cairn.junkdrawer.works/)**
 
 **Stack river stones on a rock in a stream.** A stone swings over the pile; tap to let it go and watch it settle. Once nothing is moving, it counts and the next one comes. The pile grows, the swing gets wider and faster, and from the fifth stone the wind starts pulling at the one in your hand. One stone in the water and it's over.
 

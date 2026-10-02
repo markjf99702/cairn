@@ -2,9 +2,9 @@
 // Your best score lives in localStorage, not here.
 // Network first, so a new version shows up as soon as you're online.
 
-const CACHE = 'cairn-v1';
+const CACHE = 'cairn-v2';
 const SHELL = [
-  './', 'index.html', 'css/cairn.css', 'js/cairn.js', 'js/matter.min.js', 'icon.svg', 'manifest.webmanifest',
+  './', 'index.html', 'carry.js', 'css/cairn.css', 'js/cairn.js', 'js/matter.min.js', 'icon.svg', 'manifest.webmanifest',
   'fonts/cormorant-garamond-500.woff2', 'fonts/cormorant-garamond-600.woff2',
   'fonts/nunito-sans-400.woff2', 'fonts/nunito-sans-600.woff2',
 ];
