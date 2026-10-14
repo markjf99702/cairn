@@ -160,9 +160,28 @@ await page.keyboard.press('Tab');
 await page.keyboard.press('Tab');
 assert.ok(await page.evaluate(() => document.activeElement === document.body), 'Tab leads back out of the buttons');
 
+// A phone locked just after a drop gets no frames until it's back (here the clock jumps 12 s at once). The
+// stone still has to land before it counts and the next one comes.
+await page.evaluate(() => new Promise(done => {
+  const tick = () => {
+    const p = window.cairn.peek();
+    if (p.state === 'hover' && Math.abs(p.hoverX - p.width / 2) < 8) {
+      document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', bubbles: true }));
+      const clock = performance.now.bind(performance);
+      performance.now = () => clock() + 12000;
+      done();
+    } else requestAnimationFrame(tick);
+  };
+  tick();
+}));
+await page.waitForFunction(() => window.cairn.peek().state !== 'falling', null, { timeout: 15000 });
+p = await peek(page);
+assert.equal(p.count, 1, 'the stone dropped before the phone was locked counts');
+assert.equal(await page.evaluate(() => window.cairn.stones().length), 1, 'the next stone waits until it has landed');
+
 // From the fifth stone the wind blows, and the first gust says so under the stone (Math.random is held at 0
 // for a moment so that it comes now). The hint, and zen's own, fit between the buttons.
-for (let i = 0; i < 5; i++) p = await dropCentered(page);
+for (let i = 0; i < 4; i++) p = await dropCentered(page);
 assert.equal(p.state, 'hover', 'five stones dropped over the middle stay up');
 assert.equal(p.count, 5);
 await page.evaluate(() => { const r = Math.random; Math.random = () => 0; requestAnimationFrame(() => requestAnimationFrame(() => { Math.random = r; })); });

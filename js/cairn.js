@@ -102,7 +102,7 @@ function drop() {
   if (state !== 'hover' || !hover) return;
   Body.setStatic(hover, false); Sleeping.set(hover, false); hover.sleepCounter = 0;
   Body.setAngularVelocity(hover, 0); Body.setVelocity(hover, { x: 0, y: 1.5 });
-  stones.push(hover); hover = null; state = 'falling'; fallT = performance.now();
+  stones.push(hover); hover = null; state = 'falling'; fallT = 0;
   $('intro').hidden = true;
 }
 
@@ -165,8 +165,10 @@ Events.on(engine, 'beforeUpdate', () => {
   });
 
   // Once everything has been still for a moment, count what's standing and hand over the next stone.
+  // fallT counts physics time, which stops with the frames while the game is out of sight.
   if (state === 'falling') {
-    if (now - fallT > 500 && allSettled()) {
+    fallT += STEP;
+    if (fallT > 500 && allSettled()) {
       settleT += 1;
       if (settleT > 40 && stones.every(s => s.position.y <= waterY + 30)) {
         stones.forEach(s => { if (!s.settledDensity) { s.settledDensity = true; Body.setDensity(s, 0.011); } });
@@ -174,7 +176,7 @@ Events.on(engine, 'beforeUpdate', () => {
         spawn();
       }
     } else settleT = 0;
-    if (now - fallT > 9000 && state === 'falling') spawn();
+    if (fallT > 9000 && state === 'falling') spawn();
   }
 
   $('wind').textContent = wind > 0.05 ? 'wind ' + (windDir < 0 ? '←' : '→') + ' ' + '·'.repeat(Math.ceil(wind * 3)) : '';
