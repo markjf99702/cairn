@@ -21,7 +21,7 @@ let waterY = 0, baseTop = 0, base = null;
 let stones = [], hover = null, state = 'hover', count = 0, zen = false;
 let zenRound = false; // zen helped this round (no wind, nothing ends), so it can't set the best
 let settleT = 0, fallT = 0, rot = 0;
-let wind = 0, gust = 0, windDir = 1, windSeen = false;
+let wind = 0, gust = 0, windDir = 1, windSeen = false, pull = 0;
 let cam = 0, hue0 = skyHue(), t0 = performance.now();
 
 let best = 0;
@@ -90,7 +90,7 @@ function newStone() {
 // The stone in hand swings over the stack, wider and faster as it grows, and the wind pushes it.
 function placeHover(now) {
   const amp = Math.min(W * 0.34, 48 + count * 9), sp = 0.0013 + count * 0.0001;
-  const x = W / 2 + Math.sin(now * sp) * amp + windDir * wind * 55;
+  const x = W / 2 + Math.sin(now * sp) * amp + pull * 55;
   Body.setPosition(hover, { x, y: towerTop() - 85 });
   Body.setAngle(hover, rot);
   hover.sleepCounter = 0;
@@ -143,7 +143,7 @@ function gameOver() {
 function reset() {
   stones.forEach(s => Composite.remove(world, s));
   if (hover) Composite.remove(world, hover);
-  stones = []; hover = null; wind = 0; gust = 0; cam = 0; hue0 = skyHue(); zenRound = false;
+  stones = []; hover = null; wind = 0; gust = 0; pull = 0; cam = 0; hue0 = skyHue(); zenRound = false;
   setCount(0);
   $('wind').textContent = '';
   $('over').hidden = true;
@@ -170,6 +170,9 @@ Events.on(engine, 'beforeUpdate', () => {
     }
     wind = Math.max(0, gust);
   }
+  // The stone in hand follows the wind over about a third of a second, so a gust pulls it across instead of moving
+  // it in one frame, too fast to see coming. It drifts back the same way when the wind drops, or zen stops it.
+  pull += (windDir * wind - pull) * 0.05;
 
   // A stone in the water or off the edge ends the game (or, in zen, washes away).
   stones.slice().forEach(s => {

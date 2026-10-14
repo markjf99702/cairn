@@ -120,6 +120,23 @@ check('the wind waits until five stones stand', () => {
   assert.ok(most > 0, 'the wind blows on the sixth');
 });
 
+// A gust pulls the stone in hand up to 80 px over. It used to get there between one frame and the next, too fast to
+// see coming, so a tap already on its way missed. Now it glides there: from one step to the next the stone's speed
+// changes by no more than a few px a step (the swing alone changes it by under 1).
+check('the wind pulls the stone in hand over smoothly, never in a jump', () => {
+  const g = open({ seed: 5 });
+  g.click('zen'); // stacked with zen on, so no gust gets in the way
+  g.stack(9);
+  g.click('zen');
+  const xs = [];
+  let strongest = 0;
+  g.hold(180, p => { xs.push(p.hoverX); strongest = Math.max(strongest, p.wind); });
+  assert.ok(strongest > 1, `a strong gust blew while the stone was held (the strongest was ${strongest.toFixed(2)})`);
+  let worst = 0;
+  for (let k = 2; k < xs.length; k++) worst = Math.max(worst, Math.abs(xs[k] - 2 * xs[k - 1] + xs[k - 2]));
+  assert.ok(worst < 6, `the stone in hand jumped: its speed changed by ${worst.toFixed(1)} px a step all at once`);
+});
+
 check('the best is saved as soon as the cairn passes it', () => {
   const g = open({ seed: 7, storage: new Map([['cairn.best', '2']]) });
   assert.equal(g.text('best'), '2');
