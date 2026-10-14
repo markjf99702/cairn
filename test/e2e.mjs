@@ -162,6 +162,10 @@ p = await peek(page);
 assert.equal(p.zen, false, 'Space on zen turns it off again');
 assert.equal(p.state, 'hover', 'Space on zen does not drop the stone');
 await page.keyboard.press('Tab');
+assert.equal(await page.evaluate(() => document.activeElement.id), 'rotR');
+await page.keyboard.press('Space');
+assert.equal((await peek(page)).state, 'hover', 'Space on ⟳ does not drop the stone');
+await page.waitForFunction(() => Math.abs(window.cairn.peek().angle) < 0.01, null, { timeout: 5000 }); // straight again
 await page.keyboard.press('Tab');
 assert.ok(await page.evaluate(() => document.activeElement === document.body), 'Tab leads back out of the buttons');
 
