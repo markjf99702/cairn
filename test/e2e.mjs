@@ -207,8 +207,17 @@ await page.click('#zen');
 await controlsInPlace(page, 'with no hint');
 await sink(page);
 await page.waitForSelector('#over', { state: 'visible' });
-await page.click('#again');
-assert.equal((await peek(page)).count, 0);
+
+// Holding Space down at the card starts one new round, and doesn't let its first stone go as well.
+await page.keyboard.down('Space');
+await page.keyboard.down('Space'); // the key repeating
+await page.keyboard.down('Space');
+await page.keyboard.up('Space');
+p = await peek(page);
+assert.equal(p.state, 'hover', 'holding Space down starts a round and nothing more');
+assert.equal(p.count, 0);
+assert.equal(await page.evaluate(() => window.cairn.stones().length), 0, 'the new round keeps its first stone in hand');
+assert.ok(await page.isHidden('#over'));
 
 // Zen: a stone in the water washes away and the game goes on.
 await page.click('#zen');

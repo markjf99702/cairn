@@ -278,7 +278,9 @@ cv.addEventListener('pointerdown', () => { if (state !== 'over') drop(); });
 document.addEventListener('keydown', e => {
   if (e.code === 'Space' || e.code === 'Enter') {
     if (keyFocus && e.target.closest && e.target.closest('button, a')) return;
-    e.preventDefault(); if (state === 'over') reset(); else drop();
+    e.preventDefault();
+    if (e.repeat) return; // a key held down lets one stone go, or starts one round, and that's all
+    if (state === 'over') reset(); else drop();
   }
   if (e.code === 'ArrowLeft') rot -= 0.26;
   if (e.code === 'ArrowRight') rot += 0.26;
