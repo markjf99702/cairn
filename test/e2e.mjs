@@ -15,7 +15,9 @@ let pw;
 try { pw = require('playwright'); } catch { pw = require(join(execSync('npm root -g').toString().trim(), 'playwright')); }
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json' };
+let offline = false; // while true the server hangs up, so only the offline copy can answer
 const server = createServer(async (req, res) => {
+  if (offline) { req.socket.destroy(); return; }
   const path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
   let body;
   try { body = await readFile(join(root, path === '/' ? 'index.html' : path)); } catch { res.writeHead(404); res.end(); return; }
@@ -67,10 +69,13 @@ const browser = await pw.chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true });
 const page = await ctx.newPage();
 const problems = [];
-page.on('pageerror', e => problems.push(e.message));
-page.on('console', m => { if (m.type() === 'error') problems.push(m.text()); });
-page.on('requestfailed', r => problems.push('failed: ' + r.url()));
-page.on('request', r => { if (!r.url().startsWith(base)) problems.push('left the site: ' + r.url()); });
+const watch = page => {
+  page.on('pageerror', e => problems.push(e.message));
+  page.on('console', m => { if (m.type() === 'error') problems.push(m.text()); });
+  page.on('requestfailed', r => problems.push('failed: ' + r.url()));
+  page.on('request', r => { if (!r.url().startsWith(base)) problems.push('left the site: ' + r.url()); });
+};
+watch(page);
 
 await page.goto(base);
 await page.waitForFunction(() => window.cairn && window.cairn.peek().state === 'hover');
@@ -211,14 +216,25 @@ assert.equal((await page.evaluate(() => window.cairn.stones().length)), 1, 'the 
 
 assert.deepEqual(problems, [], 'no errors, and nothing loaded from anywhere else');
 
-// Offline: once the page has loaded, it plays with no network.
-await page.evaluate(() => navigator.serviceWorker.ready);
-await ctx.setOffline(true);
-await page.reload();
-await page.waitForFunction(() => window.cairn && window.cairn.peek().state === 'hover');
-await dropCentered(page);
-assert.equal((await peek(page)).count, 1, 'plays offline');
-await ctx.setOffline(false);
+// Offline: opened once, it plays with no network. It starts from a first visit, when the list in sw.js is all
+// the offline copy has, and the server hangs up as well, because Playwright's offline switch doesn't reach the
+// service worker's own requests.
+const ctx2 = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true });
+const page2 = await ctx2.newPage();
+watch(page2);
+await page2.goto(base);
+await page2.waitForFunction(() => window.cairn && window.cairn.peek().state === 'hover');
+await page2.waitForFunction(() => navigator.serviceWorker.controller, null, { timeout: 15000 })
+  .catch(() => assert.fail('the offline copy never took over (does every file in sw.js exist?)'));
+offline = true;
+await ctx2.setOffline(true);
+await page2.reload().catch(e => assert.fail('it did not load offline: ' + e.message.split('\n')[0]));
+await page2.waitForFunction(() => window.cairn && window.cairn.peek().state === 'hover');
+assert.deepEqual(await page2.evaluate(() => document.fonts.ready.then(f => [...f].filter(x => x.status === 'error').map(x => x.family + ' ' + x.weight))), [], 'the fonts load offline');
+await dropCentered(page2);
+assert.equal((await peek(page2)).count, 1, 'plays offline');
+offline = false;
+await ctx2.setOffline(false);
 
 assert.deepEqual(problems, [], 'no errors, and nothing loaded from anywhere else');
 await browser.close();
