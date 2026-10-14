@@ -272,8 +272,16 @@ function frame(now) {
 // Space and Enter let the stone go (or start the next round), except on a button or link reached with Tab,
 // which they press as usual: that's the only way to zen without a mouse. A click leaves the focus on a button
 // too, so where the focus came from is noted when it arrives (a key pressed later turns :focus-visible on anyway).
-let keyFocus = false;
-document.addEventListener('focusin', e => { try { keyFocus = e.target.matches(':focus-visible'); } catch { keyFocus = true; } });
+// Coming back to the tab, the window gets focus first and then the button that had it gets focusin again. That
+// isn't the focus arriving (a clicked button looks keyboard-focused by then if a key was pressed since), so it
+// changes nothing.
+let keyFocus = false, refocus = null;
+window.addEventListener('focus', () => { refocus = document.activeElement; });
+document.addEventListener('focusin', e => {
+  const back = e.target === refocus; refocus = null;
+  if (back) return;
+  try { keyFocus = e.target.matches(':focus-visible'); } catch { keyFocus = true; }
+});
 cv.addEventListener('pointerdown', () => { if (state !== 'over') drop(); });
 document.addEventListener('keydown', e => {
   if (e.code === 'Space' || e.code === 'Enter') {

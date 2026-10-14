@@ -150,6 +150,20 @@ await page.click('#rotR');
 await page.keyboard.press('Space');
 assert.equal((await peek(page)).state, 'falling', 'Space after clicking ⟳ drops the stone');
 
+// And still does after coming back to the tab. Chrome then fires focus at the window, and focus and focusin at
+// ⟳ again; by then the Space pressed since the click has made ⟳ look keyboard-focused.
+await page.waitForFunction(() => window.cairn.peek().state === 'hover', null, { timeout: 15000 });
+assert.ok(await page.evaluate(() => document.activeElement.id === 'rotR' && document.activeElement.matches(':focus-visible')),
+  'the test needs ⟳ to have the focus and look keyboard-focused here');
+await page.evaluate(() => {
+  const el = document.activeElement;
+  window.dispatchEvent(new FocusEvent('focus'));
+  el.dispatchEvent(new FocusEvent('focus'));
+  el.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+});
+await page.keyboard.press('Space');
+assert.equal((await peek(page)).state, 'falling', 'Space after coming back to the tab still drops the stone');
+
 // The best score is still there after a reload.
 await page.reload();
 await page.waitForFunction(() => window.cairn && window.cairn.peek().state === 'hover');
