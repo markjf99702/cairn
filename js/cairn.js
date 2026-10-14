@@ -259,9 +259,17 @@ function frame(now) {
 }
 
 // ---------- input ----------
+// Space and Enter let the stone go (or start the next round), except on a button or link reached with Tab,
+// which they press as usual: that's the only way to zen without a mouse. A click leaves the focus on a button
+// too, so where the focus came from is noted when it arrives (a key pressed later turns :focus-visible on anyway).
+let keyFocus = false;
+document.addEventListener('focusin', e => { try { keyFocus = e.target.matches(':focus-visible'); } catch { keyFocus = true; } });
 cv.addEventListener('pointerdown', () => { if (state !== 'over') drop(); });
 document.addEventListener('keydown', e => {
-  if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); if (state === 'over') reset(); else drop(); }
+  if (e.code === 'Space' || e.code === 'Enter') {
+    if (keyFocus && e.target.closest && e.target.closest('button, a')) return;
+    e.preventDefault(); if (state === 'over') reset(); else drop();
+  }
   if (e.code === 'ArrowLeft') rot -= 0.26;
   if (e.code === 'ArrowRight') rot += 0.26;
 });
@@ -281,7 +289,7 @@ window.addEventListener('resize', resize);
 
 // A read-only look at the game, for test/e2e.mjs and tools/screenshots.mjs.
 window.cairn = {
-  peek: () => ({ state, count, best, zen, wind, waterY, width: W, hoverX: hover ? hover.position.x : null }),
+  peek: () => ({ state, count, best, zen, wind, waterY, width: W, hoverX: hover ? hover.position.x : null, angle: hover ? hover.angle : null }),
   stones: () => stones.slice(),
 };
 

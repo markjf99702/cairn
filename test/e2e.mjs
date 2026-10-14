@@ -1,6 +1,7 @@
 // Plays Cairn in Chromium through the real page:  node test/e2e.mjs  (needs Playwright)
 // Stacks stones, turns the phone sideways, knocks the cairn into the stream, checks the best score
-// survives a reload, tries zen mode, and plays once more with the network off.
+// survives a reload, presses the buttons from the keyboard, tries zen mode, and plays once more with the
+// network off.
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
 import { createServer } from 'node:http';
@@ -99,10 +100,33 @@ assert.equal(p.state, 'hover');
 assert.equal(p.count, 0);
 assert.ok(await page.isHidden('#over'));
 
+// A button clicked with the mouse keeps the focus, but Space still lets the stone go.
+await page.click('#rotR');
+await page.keyboard.press('Space');
+assert.equal((await peek(page)).state, 'falling', 'Space after clicking ⟳ drops the stone');
+
 // The best score is still there after a reload.
 await page.reload();
 await page.waitForFunction(() => window.cairn && window.cairn.peek().state === 'hover');
 assert.equal(await page.textContent('#best'), '4');
+
+// Keyboard: Tab reaches the buttons, and Enter or Space presses the one in focus instead of letting the
+// stone go. Zen has no key of its own.
+await page.keyboard.press('Tab');
+assert.equal(await page.evaluate(() => document.activeElement.id), 'rotL');
+await page.keyboard.press('Enter');
+assert.equal((await peek(page)).state, 'hover', 'Enter on ⟲ does not drop the stone');
+await page.waitForFunction(() => window.cairn.peek().angle < -0.2, null, { timeout: 5000 });
+await page.keyboard.press('Tab');
+assert.equal(await page.evaluate(() => document.activeElement.id), 'zen');
+await page.keyboard.press('Enter');
+p = await peek(page);
+assert.equal(p.zen, true, 'Enter on zen turns it on');
+assert.equal(p.state, 'hover', 'Enter on zen does not drop the stone');
+await page.keyboard.press('Space');
+p = await peek(page);
+assert.equal(p.zen, false, 'Space on zen turns it off again');
+assert.equal(p.state, 'hover', 'Space on zen does not drop the stone');
 
 // Zen: a stone in the water washes away and the game goes on.
 await page.click('#zen');
