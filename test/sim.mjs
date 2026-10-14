@@ -92,6 +92,13 @@ function open({ seed = 1, width = 390, height = 844, storage = new Map() } = {})
         assert.notEqual(p.state, 'over', `the test's own cairn fell at ${p.count} stones (seed ${seed}); try another seed`);
       }
     },
+    // Puts the bottom stone in the stream.
+    sink() {
+      const s = g.stones()[0];
+      M.Body.setStatic(s, false);
+      M.Body.setPosition(s, { x: s.position.x, y: g.peek().waterY + 100 });
+      g.step();
+    },
   };
   return g;
 }
@@ -111,6 +118,27 @@ check('the wind waits until five stones stand', () => {
   g.stack(5);
   g.hold(60, p => { most = Math.max(most, p.wind); });
   assert.ok(most > 0, 'the wind blows on the sixth');
+});
+
+check('the best is saved as soon as the cairn passes it', () => {
+  const g = open({ seed: 7, storage: new Map([['cairn.best', '2']]) });
+  assert.equal(g.text('best'), '2');
+  g.stack(3);
+  assert.equal(g.storage.get('cairn.best'), '3', 'saved while the cairn still stands, so closing the page now keeps it');
+  assert.equal(g.text('best'), '3', 'and the corner shows it');
+  assert.equal(open({ seed: 8, storage: g.storage }).text('best'), '3', 'a page opened now starts from it');
+});
+
+check("a better best saved since in another tab isn't overwritten", () => {
+  const storage = new Map([['cairn.best', '2']]);
+  const a = open({ seed: 7, storage }), b = open({ seed: 9, storage }); // both opened with a best of 2
+  b.stack(5);
+  a.stack(3);
+  a.sink();
+  assert.equal(a.peek().state, 'over');
+  assert.equal(storage.get('cairn.best'), '5');
+  assert.equal(a.text('best'), '5');
+  assert.equal(a.text('overP'), '3 stones stood.', "and the card doesn't call 3 your best");
 });
 
 if (failed) { console.log(`cairn sim: ${failed} failed, ${passed} passed`); process.exit(1); }

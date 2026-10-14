@@ -16,7 +16,7 @@
 - **⟲ and ⟳** turn the stone before you let it go, 15° a press (or the arrow keys).
 - **The wind** starts at five stones: gusts come more often and blow harder the taller the cairn gets. The top-right corner shows which way it's blowing.
 - **Zen** turns the wind off. A stone that falls in just washes away, and the game never ends.
-- Your best is saved in your browser. No account and no server. It works offline and installs to a phone's home screen.
+- Your best is saved in your browser as soon as the cairn passes it. No account and no server. It works offline and installs to a phone's home screen.
 
 ## Running it
 

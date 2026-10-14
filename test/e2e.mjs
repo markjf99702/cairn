@@ -117,6 +117,8 @@ assert.equal(p.state, 'hover', 'four stones dropped over the middle stay up');
 assert.equal(p.count, 4);
 assert.equal(await page.textContent('#count'), '4');
 assert.equal(await page.textContent('#countLbl'), 'stones');
+assert.equal(await page.textContent('#best'), '4', 'the best goes up with the cairn');
+assert.equal(await page.evaluate(() => localStorage.getItem('cairn.best')), '4', 'and is saved while the cairn still stands');
 await page.waitForTimeout(300);
 assert.deepEqual(await page.evaluate(() => window.jumps), [], 'each new stone first shows where it swings');
 
@@ -131,7 +133,7 @@ await page.setViewportSize({ width: 390, height: 844 });
 await page.waitForTimeout(2500);
 assert.equal((await peek(page)).state, 'hover', 'and turning back');
 
-// A stone in the stream ends it, and four is the new best.
+// A stone in the stream ends it, and four is the best.
 await sink(page);
 await page.waitForSelector('#over', { state: 'visible' });
 assert.deepEqual(await sticksOut(), [], 'nothing on the card sticks out sideways');

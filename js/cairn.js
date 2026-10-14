@@ -118,13 +118,20 @@ function setCount(n) {
   $('countLbl').textContent = count === 1 ? 'stone' : 'stones';
 }
 
-function gameOver() {
-  state = 'over';
+// The best is saved as soon as the cairn passes it, so a record still standing when the page closes is kept.
+// Another tab (or the installed app) may have saved a better one since this page opened, so that's read first.
+function noteBest() {
+  try { best = Math.max(best, Number(localStorage.getItem(BEST_KEY)) || 0); } catch { }
   if (count > best) {
     best = count;
     try { localStorage.setItem(BEST_KEY, String(best)); } catch { }
-    $('best').textContent = best;
   }
+  $('best').textContent = best;
+}
+
+function gameOver() {
+  state = 'over';
+  noteBest();
   $('overT').textContent = count >= 12 ? 'That was a real cairn' : count >= 6 ? 'The cairn fell' : 'The stream took it';
   $('overP').textContent = count === 1 ? 'One stone. It happens.'
     : count + ' stones stood' + (count === best && count > 0 ? ' — your best.' : '.') + (wind > 0.5 ? ' The wind had opinions.' : '');
@@ -178,6 +185,7 @@ Events.on(engine, 'beforeUpdate', () => {
       if (settleT > 40 && stones.every(s => s.position.y <= waterY + 30)) {
         stones.forEach(s => { if (!s.settledDensity) { s.settledDensity = true; Body.setDensity(s, 0.011); } });
         setCount(stones.length);
+        noteBest();
         spawn();
       }
     } else settleT = 0;
