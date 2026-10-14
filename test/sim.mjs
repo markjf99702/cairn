@@ -137,6 +137,20 @@ check('the wind pulls the stone in hand over smoothly, never in a jump', () => {
   assert.ok(worst < 6, `the stone in hand jumped: its speed changed by ${worst.toFixed(1)} px a step all at once`);
 });
 
+check('a wide window swings the stone no wider than a big phone does', () => {
+  const widest = width => {
+    const g = open({ seed: 17, width, height: 800 });
+    g.click('zen'); // no wind, so the swing is all there is
+    g.stack(15);
+    let most = 0;
+    g.hold(20, p => { most = Math.max(most, Math.abs(p.hoverX - width / 2)); });
+    return most;
+  };
+  assert.ok(Math.abs(widest(390) - 390 * 0.34) < 0.5, 'a phone swings to a third of its width, as before');
+  const wide = widest(1280);
+  assert.ok(wide < 430 * 0.34 + 0.5, `at 15 stones a 1280 px window swung ${wide.toFixed(0)} px each way`);
+});
+
 check('the best is saved as soon as the cairn passes it', () => {
   const g = open({ seed: 7, storage: new Map([['cairn.best', '2']]) });
   assert.equal(g.text('best'), '2');

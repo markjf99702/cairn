@@ -87,9 +87,10 @@ function newStone() {
   return b;
 }
 
-// The stone in hand swings over the stack, wider and faster as it grows, and the wind pushes it.
+// The stone in hand swings over the stack, wider and faster as it grows, and the wind pushes it. The swing stops
+// widening where it does on a big phone (430 px), so on a wide window it doesn't cross the cairn any faster.
 function placeHover(now) {
-  const amp = Math.min(W * 0.34, 48 + count * 9), sp = 0.0013 + count * 0.0001;
+  const amp = Math.min(Math.min(W, 430) * 0.34, 48 + count * 9), sp = 0.0013 + count * 0.0001;
   const x = W / 2 + Math.sin(now * sp) * amp + pull * 55;
   Body.setPosition(hover, { x, y: towerTop() - 85 });
   Body.setAngle(hover, rot);
