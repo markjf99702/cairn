@@ -1,6 +1,6 @@
 // Cairn: stack river stones on a rock in a stream. The physics is matter-js (js/matter.min.js).
 // A stone swings above the stack; tap (or Space) to let it go. Once nothing is moving, it counts.
-// From the fifth stone on, gusts of wind pull at the stone you're holding. Zen mode has no wind,
+// Once five stones stand, gusts of wind pull at the stone you're holding. Zen mode has no wind,
 // and a stone that falls in the water just washes away instead of ending the game.
 
 const $ = id => document.getElementById(id);

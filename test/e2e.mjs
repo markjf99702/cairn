@@ -213,7 +213,7 @@ p = await peek(page);
 assert.equal(p.count, 1, 'the stone dropped before the phone was locked counts');
 assert.equal(await page.evaluate(() => window.cairn.stones().length), 1, 'the next stone waits until it has landed');
 
-// From the fifth stone the wind blows, and the first gust says so under the stone (Math.random is held at 0
+// Once five stones stand the wind blows, and the first gust says so under the stone (Math.random is held at 0
 // for a moment so that it comes now). The hint, and zen's own, fit between the buttons.
 for (let i = 0; i < 4; i++) p = await dropCentered(page);
 assert.equal(p.state, 'hover', 'five stones dropped over the middle stay up');
