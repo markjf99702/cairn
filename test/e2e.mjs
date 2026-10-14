@@ -195,10 +195,14 @@ assert.equal(p.state, 'hover', 'five stones dropped over the middle stay up');
 assert.equal(p.count, 5);
 await page.evaluate(() => { const r = Math.random; Math.random = () => 0; requestAnimationFrame(() => requestAnimationFrame(() => { Math.random = r; })); });
 await page.waitForFunction(() => document.getElementById('hint').textContent.startsWith('wind'), null, { timeout: 5000 });
+const fiveSeconds = page.evaluate(() => new Promise(done => setTimeout(done, 5000))); // ends after the hint's own timer
 await controlsInPlace(page, 'under the wind hint');
 await page.click('#zen');
 assert.equal(await page.textContent('#hint'), 'no wind, nothing ends');
 await controlsInPlace(page, 'under the zen hint');
+// The wind hint goes after five seconds, but zen's stays as long as zen is on.
+await fiveSeconds;
+assert.equal(await page.textContent('#hint'), 'no wind, nothing ends', "the wind hint's timer leaves zen's hint alone");
 await page.click('#zen');
 await controlsInPlace(page, 'with no hint');
 await sink(page);

@@ -152,7 +152,12 @@ Events.on(engine, 'beforeUpdate', () => {
     else if (Math.random() < 0.0015 + count * 0.0003) {
       gust = 0.5 + Math.random() * Math.min(1, 0.4 + count * 0.08);
       windDir = Math.random() < 0.5 ? -1 : 1;
-      if (!windSeen) { windSeen = true; showHint('wind — it pulls the stone you are holding'); setTimeout(() => showHint(''), 5000); }
+      if (!windSeen) { // the first gust says what it does for five seconds, unless zen puts its own hint up first
+        windSeen = true;
+        const hint = 'wind — it pulls the stone you are holding';
+        showHint(hint);
+        setTimeout(() => { if ($('hint').textContent === hint) showHint(''); }, 5000);
+      }
     }
     wind = Math.max(0, gust);
   }
