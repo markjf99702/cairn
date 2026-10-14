@@ -173,6 +173,7 @@ Events.on(engine, 'beforeUpdate', () => {
   }
   // The stone in hand follows the wind over about a third of a second, so a gust pulls it across instead of moving
   // it in one frame, too fast to see coming. It drifts back the same way when the wind drops, or zen stops it.
+  // A gust fades as the stone catches up, so the stone only goes 60-80% as far as the gust alone would push it.
   pull += (windDir * wind - pull) * 0.05;
 
   // A stone in the water or off the edge ends the game (or, in zen, washes away).

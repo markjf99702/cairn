@@ -120,9 +120,9 @@ check('the wind waits until five stones stand', () => {
   assert.ok(most > 0, 'the wind blows on the sixth');
 });
 
-// A gust pulls the stone in hand up to 80 px over. It used to get there between one frame and the next, too fast to
-// see coming, so a tap already on its way missed. Now it glides there: from one step to the next the stone's speed
-// changes by no more than a few px a step (the swing alone changes it by under 1).
+// A gust used to move the stone in hand up to 83 px over between one frame and the next, too fast to see coming, so a
+// tap already on its way missed. Now it glides over (60-80% as far, as the gust fades meanwhile): from one step to the
+// next the stone's speed changes by no more than a few px a step (the swing alone changes it by under 1).
 check('the wind pulls the stone in hand over smoothly, never in a jump', () => {
   const g = open({ seed: 5 });
   g.click('zen'); // stacked with zen on, so no gust gets in the way
