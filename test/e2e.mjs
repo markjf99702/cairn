@@ -30,12 +30,14 @@ const peek = page => page.evaluate(() => window.cairn.peek());
 async function dropCentered(page) {
   const before = await peek(page);
   await page.evaluate(() => new Promise(done => {
+    let was = null;
     const tick = () => {
-      const p = window.cairn.peek();
-      if (p.state === 'hover' && p.hoverX != null && Math.abs(p.hoverX - p.width / 2) < 2) {
+      const p = window.cairn.peek(), off = p.state === 'hover' && p.hoverX != null ? p.hoverX - p.width / 2 : null;
+      // Within 2px of the middle, or just past it after a slow frame.
+      if (off != null && (Math.abs(off) < 2 || (was != null && Math.sign(off) !== Math.sign(was) && Math.abs(off) < 8))) {
         document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', bubbles: true }));
         done();
-      } else requestAnimationFrame(tick);
+      } else { was = off; requestAnimationFrame(tick); }
     };
     tick();
   }));
@@ -75,6 +77,20 @@ await page.waitForFunction(() => window.cairn && window.cairn.peek().state === '
 assert.equal(await page.textContent('#best'), '0');
 assert.ok(await page.isVisible('#intro'), 'the first-time hint shows');
 
+// Notes every frame where the stone in hand jumps instead of swinging (a new one used to show for a frame
+// at the top of the screen first).
+await page.evaluate(() => {
+  window.jumps = [];
+  let was = null;
+  const tick = () => {
+    const p = window.cairn.peek(), now = p.state === 'hover' ? { count: p.count, x: Math.round(p.hoverX), y: Math.round(p.hoverY) } : null;
+    if (now && was && now.count === was.count && Math.abs(now.y - was.y) > 30) window.jumps.push([was, now]);
+    was = now;
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+});
+
 // A tap anywhere lets the first stone go; it lands on the rock and counts.
 await page.touchscreen.tap(195, 420);
 await page.waitForFunction(() => window.cairn.peek().count === 1, null, { timeout: 15000 });
@@ -87,6 +103,8 @@ assert.equal(p.state, 'hover', 'four stones dropped over the middle stay up');
 assert.equal(p.count, 4);
 assert.equal(await page.textContent('#count'), '4');
 assert.equal(await page.textContent('#countLbl'), 'stones');
+await page.waitForTimeout(300);
+assert.deepEqual(await page.evaluate(() => window.jumps), [], 'each new stone first shows where it swings');
 
 // Turning the phone sideways moves the rock to the new middle, and the cairn goes with it.
 await page.setViewportSize({ width: 844, height: 390 });

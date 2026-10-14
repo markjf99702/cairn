@@ -86,7 +86,17 @@ function newStone() {
   return b;
 }
 
-function spawn() { hover = newStone(); Composite.add(world, hover); state = 'hover'; settleT = 0; }
+// The stone in hand swings over the stack, wider and faster as it grows, and the wind pushes it.
+function placeHover(now) {
+  const amp = Math.min(W * 0.34, 48 + count * 9), sp = 0.0013 + count * 0.0001;
+  const x = W / 2 + Math.sin(now * sp) * amp + windDir * wind * 55;
+  Body.setPosition(hover, { x, y: towerTop() - 85 });
+  Body.setAngle(hover, rot);
+  hover.sleepCounter = 0;
+}
+
+// A new stone goes straight to its place in the swing, so it never shows (or drops) from where it was made.
+function spawn() { hover = newStone(); Composite.add(world, hover); state = 'hover'; settleT = 0; placeHover(performance.now()); }
 
 function drop() {
   if (state !== 'hover' || !hover) return;
@@ -135,14 +145,7 @@ function reset() {
 Events.on(engine, 'beforeUpdate', () => {
   const now = performance.now();
 
-  // The stone in hand swings over the stack, wider and faster as it grows, and the wind pushes it.
-  if (state === 'hover' && hover) {
-    const amp = Math.min(W * 0.34, 48 + count * 9), sp = 0.0013 + count * 0.0001;
-    const x = W / 2 + Math.sin(now * sp) * amp + windDir * wind * 55;
-    Body.setPosition(hover, { x, y: towerTop() - 85 });
-    Body.setAngle(hover, rot);
-    hover.sleepCounter = 0;
-  }
+  if (state === 'hover' && hover) placeHover(now);
 
   if (!zen && count >= 5) {
     if (gust > 0) gust -= 0.006;
@@ -289,7 +292,7 @@ window.addEventListener('resize', resize);
 
 // A read-only look at the game, for test/e2e.mjs and tools/screenshots.mjs.
 window.cairn = {
-  peek: () => ({ state, count, best, zen, wind, waterY, width: W, hoverX: hover ? hover.position.x : null, angle: hover ? hover.angle : null }),
+  peek: () => ({ state, count, best, zen, wind, waterY, width: W, hoverX: hover ? hover.position.x : null, hoverY: hover ? hover.position.y : null, angle: hover ? hover.angle : null }),
   stones: () => stones.slice(),
 };
 
