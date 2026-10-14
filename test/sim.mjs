@@ -1,0 +1,117 @@
+// Plays Cairn headless:  node test/sim.mjs  (needs only Node)
+// The real js/matter.min.js and js/cairn.js run in a Node vm on a stand-in page, with a seeded Math.random and a
+// clock that only moves when the test takes a physics step (1/60 s). So each game here comes out the same every
+// run, and the stone in hand can be followed step by step, which the browser test can't do (its frames don't line
+// up with the physics steps).
+import vm from 'node:vm';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import assert from 'node:assert/strict';
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const STEP = 1000 / 60;
+const matterJs = new vm.Script(readFileSync(join(root, 'js/matter.min.js'), 'utf8'), { filename: 'matter.min.js' });
+const cairnJs = new vm.Script('"use strict";\n' + readFileSync(join(root, 'js/cairn.js'), 'utf8'), { filename: 'cairn.js' });
+
+function mulberry32(a) {
+  return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+
+// Opens the game on a stand-in phone page. `storage` is its localStorage (a Map), so two pages can share one.
+function open({ seed = 1, width = 390, height = 844, storage = new Map() } = {}) {
+  const on = (list, type, f) => { (list[type] ||= []).push(f); };
+  const fire = (list, type) => (list[type] || []).forEach(f => f({}));
+  const ctx = new Proxy({}, { get: () => () => ({ addColorStop() {} }) }); // nothing is drawn here
+  const els = {};
+  for (const id of ['stage', 'count', 'countLbl', 'best', 'wind', 'intro', 'rotL', 'hint', 'zen', 'rotR', 'over', 'overT', 'overP', 'again']) {
+    let text = '';
+    els[id] = {
+      id, hidden: id === 'over', style: {}, ls: {}, classList: { toggle() {} }, getContext: () => ctx,
+      get textContent() { return text; }, set textContent(v) { text = String(v); }, // a page keeps text as a string
+      addEventListener(type, f) { on(this.ls, type, f); },
+    };
+  }
+  const timers = [], clock = { now: 1000 };
+  const page = {
+    performance: { now: () => clock.now },
+    requestAnimationFrame: () => 0, // the test takes the steps itself
+    setTimeout: (f, ms) => timers.push({ at: clock.now + ms, f }),
+    localStorage: { getItem: k => (storage.has(k) ? storage.get(k) : null), setItem: (k, v) => storage.set(k, String(v)) },
+    document: { getElementById: id => els[id], querySelector: () => ({ addEventListener() {} }), addEventListener() {} },
+    addEventListener() {},
+    navigator: {}, innerWidth: width, innerHeight: height, devicePixelRatio: 2,
+  };
+  page.window = page;
+  vm.createContext(page);
+  page.seeded = mulberry32(seed);
+  vm.runInContext('Math.random = seeded; delete globalThis.seeded;', page);
+  matterJs.runInContext(page);
+  const M = page.Matter, create = M.Engine.create;
+  let engine;
+  M.Engine.create = o => (engine = create(o)); // keeps the game's own engine, so the test can step it
+  cairnJs.runInContext(page);
+  M.Engine.create = create;
+
+  const g = {
+    M, storage,
+    peek: () => page.cairn.peek(),
+    stones: () => page.cairn.stones(),
+    text: id => els[id].textContent,
+    step() {
+      clock.now += STEP;
+      for (const t of timers) if (t.f && t.at <= clock.now) { const f = t.f; t.f = null; f(); }
+      M.Engine.update(engine, STEP);
+    },
+    tap: () => fire(els.stage.ls, 'pointerdown'),
+    click: id => fire(els[id].ls, 'click'),
+    hold(seconds, each) { for (let k = 0; k < seconds * 60; k++) { g.step(); if (each) each(g.peek()); } },
+    // Lets the stone go as it passes over x, then waits for the next stone (or the end).
+    dropAt(x) {
+      const before = g.peek().count;
+      let was = g.peek().hoverX;
+      for (let k = 0; k < 60 * 60 && g.peek().state === 'hover'; k++) {
+        g.step();
+        const now = g.peek().hoverX;
+        if ((was - x) * (now - x) <= 0) g.tap();
+        was = now;
+      }
+      assert.equal(g.peek().state, 'falling', `the stone in hand never passed over x = ${Math.round(x)}`);
+      for (let k = 0; k < 60 * 15; k++) {
+        g.step();
+        const p = g.peek();
+        if (p.state === 'over' || (p.state === 'hover' && p.count > before)) return p;
+      }
+      assert.fail('the stone let go never settled');
+    },
+    // Lets each stone go over the middle of the one on top until n stand.
+    stack(n) {
+      while (g.peek().count < n) {
+        const top = g.stones().reduce((t, s) => (!t || s.bounds.min.y < t.bounds.min.y ? s : t), null);
+        const p = g.dropAt(top ? top.position.x : g.peek().width / 2);
+        assert.notEqual(p.state, 'over', `the test's own cairn fell at ${p.count} stones (seed ${seed}); try another seed`);
+      }
+    },
+  };
+  return g;
+}
+
+let passed = 0, failed = 0;
+function check(name, fn) {
+  try { fn(); passed++; console.log('  ok    ' + name); }
+  catch (e) { failed++; console.log('  FAIL  ' + name + '\n        ' + e.message.split('\n')[0]); }
+}
+
+check('the wind waits until five stones stand', () => {
+  const g = open({ seed: 3 });
+  g.stack(4);
+  let most = 0;
+  g.hold(60, p => { most = Math.max(most, p.wind); });
+  assert.equal(most, 0, 'no wind while the fifth stone is in hand');
+  g.stack(5);
+  g.hold(60, p => { most = Math.max(most, p.wind); });
+  assert.ok(most > 0, 'the wind blows on the sixth');
+});
+
+if (failed) { console.log(`cairn sim: ${failed} failed, ${passed} passed`); process.exit(1); }
+console.log(`cairn sim: all ${passed} passed`);

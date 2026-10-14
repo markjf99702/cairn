@@ -24,7 +24,7 @@ It's a static site: plain HTML, CSS and JavaScript, with no build step.
 
 ```sh
 npx serve .                   # or any static file server, then open the printed address
-npm test                      # plays it in Chromium through the real page (needs Playwright)
+npm test                      # plays it headless in Node (test/sim.mjs), then in Chromium through the real page (needs Playwright)
 node tools/screenshots.mjs    # redraws docs/*.png and og.png
 node tools/make-icons.mjs     # redraws the PNG icons from icon.svg
 ```
