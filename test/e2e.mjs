@@ -82,6 +82,15 @@ await page.waitForFunction(() => window.cairn && window.cairn.peek().state === '
 assert.equal(await page.textContent('#best'), '0');
 assert.ok(await page.isVisible('#intro'), 'the first-time hint shows');
 
+// Fits a phone: nothing scrolls sideways or sticks out past the sides of the screen. (html and body don't scroll
+// at all here, so the page's own width would pass whatever stuck out; each element is checked as well.)
+const sticksOut = () => page.evaluate(() => [
+  ...(document.documentElement.scrollWidth > innerWidth ? ['the page'] : []),
+  ...[...document.querySelectorAll('body *')].filter(el => { const r = el.getBoundingClientRect(); return r.width && (r.left < -1 || r.right > innerWidth + 1); })
+    .map(el => el.id || el.className || el.tagName),
+]);
+assert.deepEqual(await sticksOut(), [], 'nothing sticks out sideways on a phone');
+
 // Notes every frame where the stone in hand jumps instead of swinging (a new one used to show for a frame
 // at the top of the screen first).
 await page.evaluate(() => {
@@ -117,6 +126,7 @@ await page.waitForTimeout(2500);
 p = await peek(page);
 assert.equal(p.state, 'hover', 'the cairn survives the phone turning sideways');
 assert.equal(p.count, 4);
+assert.deepEqual(await sticksOut(), [], 'nothing sticks out sideways with the phone turned');
 await page.setViewportSize({ width: 390, height: 844 });
 await page.waitForTimeout(2500);
 assert.equal((await peek(page)).state, 'hover', 'and turning back');
@@ -124,6 +134,7 @@ assert.equal((await peek(page)).state, 'hover', 'and turning back');
 // A stone in the stream ends it, and four is the new best.
 await sink(page);
 await page.waitForSelector('#over', { state: 'visible' });
+assert.deepEqual(await sticksOut(), [], 'nothing on the card sticks out sideways');
 assert.equal(await page.textContent('#best'), '4');
 assert.match(await page.textContent('#overP'), /4 stones stood — your best\./);
 assert.equal(await page.evaluate(() => localStorage.getItem('cairn.best')), '4');
