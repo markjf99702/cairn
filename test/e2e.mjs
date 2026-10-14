@@ -50,6 +50,17 @@ const sink = page => page.evaluate(() => {
   window.Matter.Body.setPosition(s, { x: s.position.x, y: window.cairn.peek().waterY + 100 });
 });
 
+// The hint under the stone fits between the round buttons: they stay round and zen stays in the middle.
+async function controlsInPlace(page, when) {
+  const c = await page.evaluate(() => {
+    const r = id => document.getElementById(id).getBoundingClientRect();
+    const L = r('rotL'), Z = r('zen'), R = r('rotR');
+    return { sizes: [L.width, L.height, R.width, R.height], zenOff: Z.left + Z.width / 2 - innerWidth / 2 };
+  });
+  assert.deepEqual(c.sizes, [52, 52, 52, 52], `the rotate buttons stay round ${when}`);
+  assert.ok(Math.abs(c.zenOff) < 1, `zen stays in the middle ${when} (it is ${c.zenOff.toFixed(1)}px off)`);
+}
+
 const browser = await pw.chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true });
 const page = await ctx.newPage();
@@ -127,6 +138,27 @@ await page.keyboard.press('Space');
 p = await peek(page);
 assert.equal(p.zen, false, 'Space on zen turns it off again');
 assert.equal(p.state, 'hover', 'Space on zen does not drop the stone');
+await page.keyboard.press('Tab');
+await page.keyboard.press('Tab');
+assert.ok(await page.evaluate(() => document.activeElement === document.body), 'Tab leads back out of the buttons');
+
+// From the fifth stone the wind blows, and the first gust says so under the stone (Math.random is held at 0
+// for a moment so that it comes now). The hint, and zen's own, fit between the buttons.
+for (let i = 0; i < 5; i++) p = await dropCentered(page);
+assert.equal(p.state, 'hover', 'five stones dropped over the middle stay up');
+assert.equal(p.count, 5);
+await page.evaluate(() => { const r = Math.random; Math.random = () => 0; requestAnimationFrame(() => requestAnimationFrame(() => { Math.random = r; })); });
+await page.waitForFunction(() => document.getElementById('hint').textContent.startsWith('wind'), null, { timeout: 5000 });
+await controlsInPlace(page, 'under the wind hint');
+await page.click('#zen');
+assert.equal(await page.textContent('#hint'), 'no wind, nothing ends');
+await controlsInPlace(page, 'under the zen hint');
+await page.click('#zen');
+await controlsInPlace(page, 'with no hint');
+await sink(page);
+await page.waitForSelector('#over', { state: 'visible' });
+await page.click('#again');
+assert.equal((await peek(page)).count, 0);
 
 // Zen: a stone in the water washes away and the game goes on.
 await page.click('#zen');

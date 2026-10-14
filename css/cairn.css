@@ -39,9 +39,10 @@ body {
 }
 .ctl button {
   pointer-events: auto; background: rgba(244, 239, 230, .10); border: 1px solid rgba(244, 239, 230, .28); color: var(--ink);
-  border-radius: 999px; width: 52px; height: 52px; font: 600 20px var(--disp);
+  border-radius: 999px; width: 52px; height: 52px; flex: none; font: 600 20px var(--disp);
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); cursor: pointer;
 }
+.ctl > div { flex: 1; min-width: 0; text-align: center; } /* the hint wraps between the buttons, and zen stays in the middle */
 .ctl button:active { background: rgba(244, 239, 230, .22); }
 .ctl .hint { font: 400 12px var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--ink3); text-align: center; padding-bottom: 16px; }
 .ctl .mode {
