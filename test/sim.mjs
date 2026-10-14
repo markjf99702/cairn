@@ -141,5 +141,33 @@ check("a better best saved since in another tab isn't overwritten", () => {
   assert.equal(a.text('overP'), '3 stones stood.', "and the card doesn't call 3 your best");
 });
 
+check("a cairn built with zen on doesn't become the best", () => {
+  const g = open({ seed: 11 });
+  g.click('zen');
+  g.stack(3);
+  g.click('zen');
+  g.sink();
+  assert.equal(g.peek().state, 'over');
+  assert.equal(g.storage.get('cairn.best'), undefined);
+  assert.equal(g.text('best'), '0');
+  assert.equal(g.text('overP'), '3 stones stood.');
+  // Nor does a round where zen goes on and off again with stones up (it stops a gust on the stone in hand).
+  g.click('again');
+  g.stack(2);
+  assert.equal(g.storage.get('cairn.best'), '2');
+  g.click('zen');
+  g.click('zen');
+  g.stack(4);
+  assert.equal(g.storage.get('cairn.best'), '2', 'zen on and off again mid-round');
+});
+
+check('trying zen before the first stone still lets the round set the best', () => {
+  const g = open({ seed: 13 });
+  g.click('zen');
+  g.click('zen');
+  g.stack(2);
+  assert.equal(g.storage.get('cairn.best'), '2');
+});
+
 if (failed) { console.log(`cairn sim: ${failed} failed, ${passed} passed`); process.exit(1); }
 console.log(`cairn sim: all ${passed} passed`);

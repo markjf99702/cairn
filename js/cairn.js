@@ -19,6 +19,7 @@ const PALETTE = ['#8A8F93', '#7C7670', '#9AA0A3', '#6F6D6A', '#A39A8C', '#7D8A8C
 let W = 0, H = 0, DPR = 1;
 let waterY = 0, baseTop = 0, base = null;
 let stones = [], hover = null, state = 'hover', count = 0, zen = false;
+let zenRound = false; // zen helped this round (no wind, nothing ends), so it can't set the best
 let settleT = 0, fallT = 0, rot = 0;
 let wind = 0, gust = 0, windDir = 1, windSeen = false;
 let cam = 0, hue0 = skyHue(), t0 = performance.now();
@@ -103,6 +104,7 @@ function drop() {
   Body.setStatic(hover, false); Sleeping.set(hover, false); hover.sleepCounter = 0;
   Body.setAngularVelocity(hover, 0); Body.setVelocity(hover, { x: 0, y: 1.5 });
   stones.push(hover); hover = null; state = 'falling'; fallT = 0;
+  if (zen) zenRound = true;
   $('intro').hidden = true;
 }
 
@@ -122,7 +124,7 @@ function setCount(n) {
 // Another tab (or the installed app) may have saved a better one since this page opened, so that's read first.
 function noteBest() {
   try { best = Math.max(best, Number(localStorage.getItem(BEST_KEY)) || 0); } catch { }
-  if (count > best) {
+  if (count > best && !zenRound) {
     best = count;
     try { localStorage.setItem(BEST_KEY, String(best)); } catch { }
   }
@@ -134,14 +136,14 @@ function gameOver() {
   noteBest();
   $('overT').textContent = count >= 12 ? 'That was a real cairn' : count >= 6 ? 'The cairn fell' : 'The stream took it';
   $('overP').textContent = count === 1 ? 'One stone. It happens.'
-    : count + ' stones stood' + (count === best && count > 0 ? ' — your best.' : '.') + (wind > 0.5 ? ' The wind had opinions.' : '');
+    : count + ' stones stood' + (count === best && count > 0 && !zenRound ? ' — your best.' : '.') + (wind > 0.5 ? ' The wind had opinions.' : '');
   $('over').hidden = false;
 }
 
 function reset() {
   stones.forEach(s => Composite.remove(world, s));
   if (hover) Composite.remove(world, hover);
-  stones = []; hover = null; wind = 0; gust = 0; cam = 0; hue0 = skyHue();
+  stones = []; hover = null; wind = 0; gust = 0; cam = 0; hue0 = skyHue(); zenRound = false;
   setCount(0);
   $('wind').textContent = '';
   $('over').hidden = true;
@@ -308,6 +310,7 @@ $('again').addEventListener('click', reset);
 document.querySelector('.jd-foot').addEventListener('keydown', e => e.stopPropagation());
 $('zen').addEventListener('click', () => {
   zen = !zen;
+  if (zen && stones.length) zenRound = true; // on with stones up, it also stops a gust on the stone in hand
   $('zen').textContent = 'zen · ' + (zen ? 'on' : 'off');
   $('zen').classList.toggle('on', zen);
   wind = 0; gust = 0;
