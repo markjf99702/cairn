@@ -15,6 +15,9 @@ const cv = $('stage'), ctx = cv.getContext('2d');
 const BEST_KEY = 'cairn.best';
 const STEP = 1000 / 60; // the physics takes fixed 60 Hz steps, so a 120 Hz phone plays at the same speed as a laptop
 const PALETTE = ['#8A8F93', '#7C7670', '#9AA0A3', '#6F6D6A', '#A39A8C', '#7D8A8C', '#928B80', '#5F6B6E', '#B0AAA0'];
+// Reduce motion (the system setting) stills what only decorates: the streaks in the wind (the corner still says which
+// way it blows) and the ripple on the water. The swing is the game, and the camera's glide keeps the cairn in view.
+const calm = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
 
 let W = 0, H = 0, DPR = 1;
 let waterY = 0, baseTop = 0, base = null;
@@ -264,7 +267,7 @@ function draw(now, dt) {
   wg.addColorStop(1, 'hsla(' + (wh + 10) + ' 45% 20% / .95)');
   ctx.fillStyle = wg;
   ctx.beginPath(); ctx.moveTo(0, waterY);
-  for (let x = 0; x < W + 8; x += 8) ctx.lineTo(x, waterY + 3 * Math.sin(x / 38 + t * 1.6) + 2 * Math.sin(x / 17 - t * 2.3));
+  for (let x = 0; x < W + 8; x += 8) ctx.lineTo(x, calm.matches ? waterY : waterY + 3 * Math.sin(x / 38 + t * 1.6) + 2 * Math.sin(x / 17 - t * 2.3));
   ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.fill();
   ctx.save(); ctx.globalAlpha = 0.18; ctx.translate(0, 2 * waterY); ctx.scale(1, -1);
   bodies.forEach(b => { if (b.bounds.max.y > waterY) return; outline(b); ctx.fillStyle = b.render.fill; ctx.fill(); });
@@ -272,7 +275,7 @@ function draw(now, dt) {
   ctx.restore();
 
   // Streaks in the air while the wind blows.
-  if (wind > 0.05) {
+  if (wind > 0.05 && !calm.matches) {
     ctx.strokeStyle = 'rgba(244,239,230,' + (0.10 * wind) + ')'; ctx.lineWidth = 1;
     for (let k = 0; k < 6; k++) {
       const yy = 120 + k * 70 + (t * 40 * windDir) % 30;

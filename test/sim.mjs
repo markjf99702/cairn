@@ -19,7 +19,8 @@ function mulberry32(a) {
 }
 
 // Opens the game on a stand-in phone page. `storage` is its localStorage (a Map), so two pages can share one.
-function open({ seed = 1, width = 390, height = 844, storage = new Map() } = {}) {
+// With `reduce`, the page says Reduce motion is on.
+function open({ seed = 1, width = 390, height = 844, storage = new Map(), reduce = false } = {}) {
   const on = (list, type, f) => { (list[type] ||= []).push(f); };
   const fire = (list, type) => (list[type] || []).forEach(f => f({}));
   // Nothing is drawn here, but what the game asks for is noted, for g.draw(): each call as [name, ...args], with a
@@ -51,6 +52,7 @@ function open({ seed = 1, width = 390, height = 844, storage = new Map() } = {})
     document: { getElementById: id => els[id], querySelector: () => ({ addEventListener() {} }), addEventListener() {} },
     addEventListener() {},
     navigator: {}, innerWidth: width, innerHeight: height, devicePixelRatio: 2,
+    matchMedia: query => ({ matches: reduce && query === '(prefers-reduced-motion: reduce)' }),
   };
   page.window = page;
   vm.createContext(page);
@@ -193,6 +195,22 @@ check('the stream stays blue-teal and the sky a dusk, however long the page is o
       skies.push(sky);
     }
     assert.ok(Math.max(...skies) - Math.min(...skies) > 30, `seed ${seed}: the sky stood still`);
+  }
+});
+
+// Reduce motion stills the streaks in the wind and the ripple on the water's edge. The swing and the camera stay.
+check('Reduce motion stills the streaks in the wind and the ripple on the water', () => {
+  for (const reduce of [false, true]) {
+    const g = open({ seed: 3, reduce });
+    g.stack(5);
+    for (let k = 0; k < 60 * 60 && g.peek().wind < 0.3; k++) g.step();
+    const d = g.draw(), p = g.peek(), how = reduce ? 'with Reduce motion' : 'without it';
+    assert.ok(p.wind > 0.05, `the wind blows ${how}`);
+    const streaks = d.filter(c => c[0] === 'quadraticCurveTo').length, edge = [];
+    for (let k = d.findIndex(c => c[0] === 'moveTo' && c[1] === 0 && c[2] === p.waterY) + 1; d[k][0] === 'lineTo' && Math.abs(d[k][2] - p.waterY) < 10; k++) edge.push(d[k][2]);
+    assert.ok(edge.length > 40, `the water's edge was drawn ${how}`);
+    assert.equal(streaks, reduce ? 0 : 6, `streaks in the wind ${how}`);
+    assert.equal(edge.every(y => y === p.waterY), reduce, reduce ? "the water's edge is flat" : 'the water ripples');
   }
 });
 
