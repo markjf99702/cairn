@@ -139,7 +139,7 @@ check('the wind pulls the stone in hand over smoothly, never in a jump', () => {
 
 check('a wide window swings the stone no wider than a big phone does', () => {
   const widest = width => {
-    const g = open({ seed: 17, width, height: 800 });
+    const g = open({ seed: 18, width, height: 800 });
     g.click('zen'); // no wind, so the swing is all there is
     g.stack(15);
     let most = 0;
@@ -149,6 +149,20 @@ check('a wide window swings the stone no wider than a big phone does', () => {
   assert.ok(Math.abs(widest(390) - 390 * 0.34) < 0.5, 'a phone swings to a third of its width, as before');
   const wide = widest(1280);
   assert.ok(wide < 430 * 0.34 + 0.5, `at 15 stones a 1280 px window swung ${wide.toFixed(0)} px each way`);
+});
+
+// matter-js lets a stone that is barely moving fall asleep, and a sleeping stone stays put. So a stone tipping off
+// the edge of the one below could stop part-way over and count: here the fourth, let go just inside the third's
+// right edge, used to stop at 53 degrees with its middle 14 px past anything it touched, and count as 4 (the next
+// stone to land would have woken it). The stone let go can't fall asleep now until it has counted.
+check('a stone tipping off the edge of the one below falls in, instead of stopping part-way and counting', () => {
+  const g = open({ seed: 20 });
+  g.stack(3);
+  const top = g.stones().reduce((t, s) => (s.bounds.min.y < t.bounds.min.y ? s : t));
+  const p = g.dropAt(top.bounds.max.x - 12);
+  const s = g.stones()[3], tilt = Math.round(Math.abs(Math.atan(Math.tan(s.angle))) * 180 / Math.PI);
+  assert.equal(p.state, 'over', `the fourth stone counted, tipped ${tilt} degrees${s.isSleeping ? ' and asleep' : ''}`);
+  assert.equal(p.count, 3);
 });
 
 check('the best is saved as soon as the cairn passes it', () => {

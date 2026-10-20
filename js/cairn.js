@@ -100,17 +100,20 @@ function placeHover(now) {
 // A new stone goes straight to its place in the swing, so it never shows (or drops) from where it was made.
 function spawn() { hover = newStone(); Composite.add(world, hover); state = 'hover'; settleT = 0; placeHover(performance.now()); }
 
+// matter-js lets a stone that is barely moving fall asleep, and a sleeping stone stays put, so one tipping slowly off
+// an edge could stop part-way over and count. The stone let go can't fall asleep (sleepThreshold 0) until it counts.
 function drop() {
   if (state !== 'hover' || !hover) return;
-  Body.setStatic(hover, false); Sleeping.set(hover, false); hover.sleepCounter = 0;
+  Body.setStatic(hover, false); Sleeping.set(hover, false); hover.sleepCounter = 0; hover.sleepThreshold = 0;
   Body.setAngularVelocity(hover, 0); Body.setVelocity(hover, { x: 0, y: 1.5 });
   stones.push(hover); hover = null; state = 'falling'; fallT = 0;
   if (zen) zenRound = true;
   $('intro').hidden = true;
 }
 
+// Still enough to count. A stone still turning 0.003 rad a step (10 degrees a second) is still tipping over.
 function allSettled() {
-  return stones.every(s => s.isSleeping || (s.speed <= 0.12 && Math.abs(s.angularSpeed) <= 0.015));
+  return stones.every(s => s.isSleeping || (s.speed <= 0.12 && Math.abs(s.angularSpeed) <= 0.003));
 }
 function towerTop() { let y = baseTop; stones.forEach(s => { if (s.bounds.min.y < y) y = s.bounds.min.y; }); return y; }
 function showHint(t) { $('hint').textContent = t; }
@@ -190,7 +193,8 @@ Events.on(engine, 'beforeUpdate', () => {
     if (fallT > 500 && allSettled()) {
       settleT += 1;
       if (settleT > 40 && stones.every(s => s.position.y <= waterY + 30)) {
-        stones.forEach(s => { if (!s.settledDensity) { s.settledDensity = true; Body.setDensity(s, 0.011); } });
+        // A stone that has counted gets heavier, and sleeps again when still (matter's usual 60 steps).
+        stones.forEach(s => { if (!s.settledDensity) { s.settledDensity = true; Body.setDensity(s, 0.011); s.sleepThreshold = 60; } });
         setCount(stones.length);
         noteBest();
         spawn();
