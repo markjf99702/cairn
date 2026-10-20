@@ -22,7 +22,16 @@ function mulberry32(a) {
 function open({ seed = 1, width = 390, height = 844, storage = new Map() } = {}) {
   const on = (list, type, f) => { (list[type] ||= []).push(f); };
   const fire = (list, type) => (list[type] || []).forEach(f => f({}));
-  const ctx = new Proxy({}, { get: () => () => ({ addColorStop() {} }) }); // nothing is drawn here
+  // Nothing is drawn here, but what the game asks for is noted, for g.draw(): each call as [name, ...args], with a
+  // gradient's colours on its call as .stops.
+  const drawn = [];
+  const ctx = new Proxy({}, {
+    get: (_, name) => (...args) => {
+      const call = [name, ...args];
+      drawn.push(call);
+      if (name === 'createLinearGradient') { call.stops = []; return { addColorStop: (at, colour) => call.stops.push(colour) }; }
+    },
+  });
   const els = {};
   for (const id of ['stage', 'count', 'countLbl', 'best', 'wind', 'intro', 'rotL', 'hint', 'zen', 'rotR', 'over', 'overT', 'overP', 'again']) {
     let text = '';
@@ -33,9 +42,10 @@ function open({ seed = 1, width = 390, height = 844, storage = new Map() } = {})
     };
   }
   const timers = [], clock = { now: 1000 };
+  let frame = null;
   const page = {
     performance: { now: () => clock.now },
-    requestAnimationFrame: () => 0, // the test takes the steps itself
+    requestAnimationFrame: f => { frame = f; return 0; }, // the test takes the steps itself, and draws when it asks
     setTimeout: (f, ms) => timers.push({ at: clock.now + ms, f }),
     localStorage: { getItem: k => (storage.has(k) ? storage.get(k) : null), setItem: (k, v) => storage.set(k, String(v)) },
     document: { getElementById: id => els[id], querySelector: () => ({ addEventListener() {} }), addEventListener() {} },
@@ -63,6 +73,9 @@ function open({ seed = 1, width = 390, height = 844, storage = new Map() } = {})
       for (const t of timers) if (t.f && t.at <= clock.now) { const f = t.f; t.f = null; f(); }
       M.Engine.update(engine, STEP);
     },
+    // Draws a frame as if the page had been open this many seconds (by default, as long as the test has played),
+    // and returns what was drawn. Like any frame, it may take a few physics steps first.
+    draw(seconds = (clock.now - 1000) / 1000) { drawn.length = 0; frame(1000 + seconds * 1000); return drawn.slice(); },
     tap: () => fire(els.stage.ls, 'pointerdown'),
     click: id => fire(els[id].ls, 'click'),
     hold(seconds, each) { for (let k = 0; k < seconds * 60; k++) { g.step(); if (each) each(g.peek()); } },
@@ -163,6 +176,24 @@ check('a stone tipping off the edge of the one below falls in, instead of stoppi
   const s = g.stones()[3], tilt = Math.round(Math.abs(Math.atan(Math.tan(s.angle))) * 180 / Math.PI);
   assert.equal(p.state, 'over', `the fourth stone counted, tipped ${tilt} degrees${s.isSleeping ? ' and asleep' : ''}`);
   assert.equal(p.count, 3);
+});
+
+// The sky used to drift round the colour wheel (0.6 degrees a second) with the water 190 degrees on from it, so the
+// stream was rust, olive or green at most starts, and within minutes the sky was brown or green. Now the sky stays a
+// dusk (hue 190-340) and the stream keeps a blue-teal of its own (175-200), whenever you look.
+check('the stream stays blue-teal and the sky a dusk, however long the page is open', () => {
+  const stops = (d, y0) => d.find(c => c[0] === 'createLinearGradient' && c[2] === y0 && c[4] === 844).stops;
+  const hue = colour => Number(/^hsla?\(([-\d.e+]+)/.exec(colour)[1]);
+  for (let seed = 1; seed <= 12; seed++) {
+    const g = open({ seed }), skies = [];
+    for (const minutes of [0, 1, 2.4, 5, 7.1, 10, 30, 60]) {
+      const d = g.draw(minutes * 60), sky = hue(stops(d, 0)[0]), water = hue(stops(d, g.peek().waterY)[0]);
+      assert.ok(sky >= 190 && sky <= 340, `seed ${seed}, ${minutes} min in: the sky's hue is ${sky.toFixed(0)}`);
+      assert.ok(water >= 175 && water <= 200, `seed ${seed}, ${minutes} min in: the stream's hue is ${water.toFixed(0)}`);
+      skies.push(sky);
+    }
+    assert.ok(Math.max(...skies) - Math.min(...skies) > 30, `seed ${seed}: the sky stood still`);
+  }
 });
 
 check('the best is saved as soon as the cairn passes it', () => {

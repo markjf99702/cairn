@@ -32,6 +32,7 @@ const engine = Engine.create({ gravity: { x: 0, y: 0.75 }, enableSleeping: true 
 engine.positionIterations = 12;
 engine.velocityIterations = 8;
 
+// Where a round's dusk starts: a blue (190), violet, plum or red (340) sky.
 function skyHue() { return 190 + Math.random() * 150; }
 
 // ---------- the scene ----------
@@ -217,8 +218,10 @@ function outline(b) {
 function draw(now, dt) {
   const t = (now - t0) / 1000;
 
-  // Sky: a slowly drifting dusk.
-  const h1 = (hue0 + t * 0.6) % 360, g = ctx.createLinearGradient(0, 0, 0, H);
+  // Sky: a dusk that changes slowly, swinging back and forth across 80 degrees of hue every ten minutes or so. It
+  // stays inside 190-340 (blue to red), so it never drifts round to a brown or green sky.
+  const mid = Math.min(300, Math.max(230, hue0)), h1 = mid + 40 * Math.sin(t / 90 + Math.asin((hue0 - mid) / 40));
+  const g = ctx.createLinearGradient(0, 0, 0, H);
   g.addColorStop(0, 'hsl(' + h1 + ' 30% 16%)');
   g.addColorStop(0.55, 'hsl(' + ((h1 + 25) % 360) + ' 32% 32%)');
   g.addColorStop(1, 'hsl(' + ((h1 + 60) % 360) + ' 45% 58%)');
@@ -254,10 +257,11 @@ function draw(now, dt) {
     }
   });
 
-  // Water, and the cairn's reflection in it.
-  const wg = ctx.createLinearGradient(0, waterY, 0, H);
-  wg.addColorStop(0, 'hsla(' + ((h1 + 190) % 360) + ' 45% 40% / .85)');
-  wg.addColorStop(1, 'hsla(' + ((h1 + 200) % 360) + ' 45% 20% / .95)');
+  // Water, and the cairn's reflection in it. The stream keeps a blue-teal of its own (hue 175-200), a little bluer
+  // under a blue sky and a little greener under a red one.
+  const wh = 200 - (h1 - 190) / 6, wg = ctx.createLinearGradient(0, waterY, 0, H);
+  wg.addColorStop(0, 'hsla(' + wh + ' 45% 40% / .85)');
+  wg.addColorStop(1, 'hsla(' + (wh + 10) + ' 45% 20% / .95)');
   ctx.fillStyle = wg;
   ctx.beginPath(); ctx.moveTo(0, waterY);
   for (let x = 0; x < W + 8; x += 8) ctx.lineTo(x, waterY + 3 * Math.sin(x / 38 + t * 1.6) + 2 * Math.sin(x / 17 - t * 2.3));
