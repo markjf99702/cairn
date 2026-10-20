@@ -28,14 +28,19 @@ const base = `http://localhost:${server.address().port}/`;
 
 const peek = page => page.evaluate(() => window.cairn.peek());
 
-// Waits for the stone in hand to swing over the middle, lets it go, and waits for the next one.
-async function dropCentered(page) {
+// Waits for the stone in hand to swing over the middle of the top stone (or of the rock), lets it go, and waits for
+// the next one. Over the middle of the screen instead, a stone could hang off the edge of a first one tapped down
+// off-centre, and fall. If the round is over there's nothing to let go, and the caller's checks say so.
+async function dropOnTop(page) {
   const before = await peek(page);
   await page.evaluate(() => new Promise(done => {
     let was = null;
     const tick = () => {
-      const p = window.cairn.peek(), off = p.state === 'hover' && p.hoverX != null ? p.hoverX - p.width / 2 : null;
-      // Within 2px of the middle, or just past it after a slow frame.
+      const p = window.cairn.peek();
+      if (p.state === 'over') { done(); return; }
+      const top = window.cairn.stones().reduce((t, s) => (!t || s.bounds.min.y < t.bounds.min.y ? s : t), null);
+      const off = p.state === 'hover' && p.hoverX != null ? p.hoverX - (top ? top.position.x : p.width / 2) : null;
+      // Within 2px of it, or just past it after a slow frame.
       if (off != null && (Math.abs(off) < 2 || (was != null && Math.sign(off) !== Math.sign(was) && Math.abs(off) < 8))) {
         document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', bubbles: true }));
         done();
@@ -112,8 +117,8 @@ assert.ok(await page.isHidden('#intro'), 'the hint goes away after the first sto
 assert.equal(await page.textContent('#countLbl'), 'stone');
 
 let p;
-for (let i = 0; i < 3; i++) p = await dropCentered(page);
-assert.equal(p.state, 'hover', 'four stones dropped over the middle stay up');
+for (let i = 0; i < 3; i++) p = await dropOnTop(page);
+assert.equal(p.state, 'hover', 'four stones let go on top of each other stay up');
 assert.equal(p.count, 4);
 assert.equal(await page.textContent('#count'), '4');
 assert.equal(await page.textContent('#countLbl'), 'stones');
@@ -217,8 +222,8 @@ assert.equal(await page.evaluate(() => window.cairn.stones().length), 1, 'the ne
 
 // Once five stones stand the wind blows, and the first gust says so under the stone (Math.random is held at 0
 // for a moment so that it comes now). The hint, and zen's own, fit between the buttons.
-for (let i = 0; i < 4; i++) p = await dropCentered(page);
-assert.equal(p.state, 'hover', 'five stones dropped over the middle stay up');
+for (let i = 0; i < 4; i++) p = await dropOnTop(page);
+assert.equal(p.state, 'hover', 'five stones let go on top of each other stay up');
 assert.equal(p.count, 5);
 await page.evaluate(() => { const r = Math.random; Math.random = () => 0; requestAnimationFrame(() => requestAnimationFrame(() => { Math.random = r; })); });
 await page.waitForFunction(() => document.getElementById('hint').textContent.startsWith('wind'), null, { timeout: 5000 });
@@ -249,8 +254,8 @@ assert.ok(await page.isHidden('#over'));
 // Zen: a stone in the water washes away and the game goes on.
 await page.click('#zen');
 assert.equal(await page.textContent('#zen'), 'zen · on');
-await dropCentered(page);
-await dropCentered(page);
+await dropOnTop(page);
+await dropOnTop(page);
 await sink(page);
 await page.waitForTimeout(600);
 p = await peek(page);
@@ -275,7 +280,7 @@ await ctx2.setOffline(true);
 await page2.reload().catch(e => assert.fail('it did not load offline: ' + e.message.split('\n')[0]));
 await page2.waitForFunction(() => window.cairn && window.cairn.peek().state === 'hover');
 assert.deepEqual(await page2.evaluate(() => document.fonts.ready.then(f => [...f].filter(x => x.status === 'error').map(x => x.family + ' ' + x.weight))), [], 'the fonts load offline');
-await dropCentered(page2);
+await dropOnTop(page2);
 assert.equal((await peek(page2)).count, 1, 'plays offline');
 offline = false;
 await ctx2.setOffline(false);
