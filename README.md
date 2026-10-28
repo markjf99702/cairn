@@ -36,4 +36,4 @@ To put it online with GitHub Pages: **Settings → Pages → Build and deploymen
 - `js/cairn.js`: the whole game: the rock, the stones, the rules for settling, wind and falling in, and the drawing. The physics takes fixed 60 Hz steps, so it plays at the same speed on a 120 Hz phone as on a laptop.
 - `js/matter.min.js`: [matter-js](https://brm.io/matter-js/) 0.20.0, the physics engine (MIT License), served from here.
 - `fonts/`: Cormorant Garamond and Nunito Sans (SIL Open Font License), served from here so nothing loads from elsewhere.
-- `sw.js`: keeps a copy of the game for playing offline.
+- `sw.js`: keeps a copy of the game for playing offline. On a connection that isn't answering, a page opens from that copy after four seconds. `FILES` in it is a fingerprint of the files it keeps: change one and `npm test` says what to set it to, so a release never leaves the copy half old.
